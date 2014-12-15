@@ -5,7 +5,12 @@ width       = 80;
 depth       = 70;
 face_depth  = 15;
 back_releif = 4;
-base_height = 10;
+base_height = 7;
+
+base_screw_diameter    = 3.1;
+base_screw_y_offset_r1 = 9.8;
+base_screw_sep         = 50.0;
+base_screw_height      = 2.5;
 
 riser_depth  = 10;
 riser_height = 140;
@@ -13,17 +18,13 @@ riser_width  = (width + dim_tol * 2) - (back_releif * 2);
 riser_open_height = 80;
 riser_pylon_width = 10;
 
-riser_av_cutout_rad = 10;
+riser_av_cutout_rad = 13;
 riser_av_vert_pos   = 45;
 
 screw_slot_width  = 5;
 screw_slot_height = 20;
-screw_slot_releif = 6;
+screw_slot_releif = 8;
 screw_slot_center_offset = base_height + 100;
-
-base_screw_diameter = 4.0;
-base_screw_y_offset_r1 = 9.8;
-base_screw_sep = 50.0;
 
 module side_base_cuts() {
   translate([ -(width/2) - dim_tol, (depth/2) + dim_tol - face_depth, 0 ])
@@ -58,16 +59,16 @@ module base() {
             width + (2 * dim_tol) - (2 * back_releif), riser_depth + 4, base_height ]);
     }
 
-    translate([ - base_screw_sep / 2.0, base_screw_y_offset_r1, 4])
+    translate([ - base_screw_sep / 2.0, base_screw_y_offset_r1, base_screw_height])
       recessed_screw( base_screw_diameter, base_screw_diameter + 5.0 );
 
-    translate([ base_screw_sep / 2.0, base_screw_y_offset_r1, 4])
+    translate([ base_screw_sep / 2.0, base_screw_y_offset_r1, base_screw_height])
       recessed_screw( base_screw_diameter, base_screw_diameter + 5.0 );
 
-    translate([ - base_screw_sep / 2.0, base_screw_y_offset_r1 + base_screw_sep, 4])
+    translate([ - base_screw_sep / 2.0, base_screw_y_offset_r1 + base_screw_sep, base_screw_height])
       recessed_screw( base_screw_diameter, base_screw_diameter + 5.0 );
 
-    translate([ base_screw_sep / 2.0, base_screw_y_offset_r1 + base_screw_sep, 4])
+    translate([ base_screw_sep / 2.0, base_screw_y_offset_r1 + base_screw_sep, base_screw_height])
       recessed_screw( base_screw_diameter, base_screw_diameter + 5.0 );
   }
 }
@@ -75,17 +76,17 @@ module base() {
 module riser_screw_slot() {
   screw_slot_depth    = 2 + riser_depth;
   screw_slot_y_offset = - screw_slot_depth + 1;
+  releif_slot_depth   = 3;
 
   translate([  - (screw_slot_width / 2) , screw_slot_y_offset,  -( screw_slot_height / 2.0)])
     screw_slot( screw_slot_width, screw_slot_depth, screw_slot_height );
 
   releif_slot_width  = screw_slot_width * 3;
   releif_slot_height = screw_slot_height + (2 * screw_slot_releif);
-  releif_slot_depth  = screw_slot_releif;
 
   translate([
     - (releif_slot_width / 2) ,
-    screw_slot_y_offset - screw_slot_releif,
+    - screw_slot_depth - releif_slot_depth,
     - ( screw_slot_height / 2.0) - screw_slot_releif
   ])
 
@@ -98,26 +99,35 @@ module riser() {
 
   finishing_cylinder_radius = riser_width / 2.0;
   scale_factor = riser_height / finishing_cylinder_radius;
+  riser_cutout_width = riser_width + 2.0;
 
-  intersection() {
-    difference() {
-      translate([ - riser_width/2, - riser_depth, 0])
-        cube(size = [
-          riser_width, riser_depth, riser_height]);
+  difference() {
+    intersection() {
+      difference() {
+        translate([ - riser_width/2, - riser_depth, 0])
+          cube(size = [
+            riser_width, riser_depth, riser_height]);
 
-      translate([0, - (riser_depth/2), base_height + riser_av_vert_pos])
-        scale([1, 1.1, 2])
+        translate([0, - (riser_depth/2), base_height + riser_av_vert_pos])
+          scale([1, 1.1, 2])
+            rotate([90, 0, 0])
+              cylinder( riser_depth + 2, r = riser_av_cutout_rad, center = true );
+
+        translate([0, 0, screw_slot_center_offset ])
+          riser_screw_slot();
+      }
+
+      scale( [1, 1, scale_factor ] )
+        translate([0, 1, 0])
           rotate([90, 0, 0])
-            cylinder( riser_depth + 2, r = riser_av_cutout_rad, center = true );
-
-      translate([0, 0, screw_slot_center_offset ])
-        riser_screw_slot();
+            cylinder( r = finishing_cylinder_radius, riser_depth + 2, $fs = 0.01, $fa = 0.2 );
     }
 
-    scale( [1, 1, scale_factor ] )
-      translate([0, 1, 0])
-        rotate([90, 0, 0])
-          cylinder( r = finishing_cylinder_radius, riser_depth + 2 );
+    translate([ 0, - (riser_depth * 2) - 1, base_height])
+      rotate([ -3, 0, 0])
+        translate([ - riser_cutout_width / 2.0, 0, -5 ])
+          cube( size =
+            [riser_cutout_width, riser_depth + 1.0, riser_height + 25]);
   }
 }
 
